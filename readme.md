@@ -30,3 +30,37 @@
 分包的意义: 将小程序不常用或者首次加载不需要用到的页面放在多个分包里，主包值保留核心页面。这样子，启动时只加载主包，分包会在用到的时候按需下载，从而优化启动时下包的时间。
 
 ![分包](/imgs/img1.png)
+
+-   使用分包: 在 app.json 中用 subpackages 字段声明项目分包结构
+
+小程序中项目结构:
+
+├── app.js
+├── app.json
+├── app.wxss
+├── packageA
+│ └── pages
+│ ├── cat
+│ └── dog
+├── pages
+│ ├── index
+│ └── logs
+└── utils
+
+```
+{
+  "pages":[
+    "pages/index",
+    "pages/logs"
+  ],
+  "subpackages": [
+    {
+      "root": "packageA",
+      "pages": [
+        "pages/cat",
+        "pages/dog"
+      ]
+    }
+  ]
+}
+```
