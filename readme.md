@@ -88,7 +88,7 @@ independent: Boolean       分包是否是独立分包
 #### 1-1-3、独立分包
 
 -   从独立分包中页面进入小程序时，不需要下载主包。因此独立分包不能依赖于依赖主包和其他分包中的内容, 包括 js 文件、template、wxss、自定义组件、插件等。并且，独立分包的 getApp 也不一定可以获得 App 对象
-- 一般使用场景: 广告页、活动页、支付页等
+-   一般使用场景: 广告页、活动页、支付页等
 -   在 app.json 的 subpackages 字段中对应的分包配置项中定义 independent 字段声明对应分包为独立分包
 
 ```
@@ -114,4 +114,60 @@ independent: Boolean       分包是否是独立分包
     }
   ]
 }
+```
+
+#### 1-1-4、分包预下载
+
+这个就是进入小程序某个页面时，让框架自动下载可能需要的分包，提高进入后续分包页面时的启动速度，而不是等到需要进去分包页面的时候再下载
+![分包](/imgs/img2.png)
+
+-   packages: StringArray 进入页面后预下载分包的 root 或 name。\_\_APP\_\_ 表示主包
+-   network: String 在指定网络下预下载，可选值为 all: 不限网络 wifi: 仅 wifi 下预下载
+
+```
+├── app.js
+├── app.json
+├── app.wxss
+├── packageA
+│ └── pages
+│ ├── cat
+│ └── dog
+├── pages
+│ ├── index
+│ └── logs
+└── utils
+
+{
+  "pages": [
+    "pages/index",
+    "pages/logs"
+  ],
+  "subpackages": [
+    {
+      "root": "packageA",
+      "pages": [
+        "pages/cat",
+        "pages/dog"
+      ]
+    }, {
+      "root": "packageB",
+      "name": "pack2",
+      "pages": [
+        "pages/apple",
+        "pages/banana"
+      ]
+    }
+  ],
+  // 分包预下载
+  "preloadRule": {
+    "pages/index": {
+      "network": "all",
+      "packages": ["pack2"]
+    },
+    "pages/logs": {
+      "packages": ["packageB"]
+    }
+  }
+}
+
 ```
