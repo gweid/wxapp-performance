@@ -31,10 +31,9 @@
 
 ![分包](/imgs/img1.png)
 
--   使用分包: 在 app.json 中用 subpackages 字段声明项目分包结构
+小程序目录结构
 
-小程序中项目结构:
-
+```
 ├── app.js
 ├── app.json
 ├── app.wxss
@@ -46,6 +45,9 @@
 │ ├── index
 │ └── logs
 └── utils
+```
+
+使用分包: 在 app.json 中用 subpackages 字段声明项目分包结构
 
 ```
 {
@@ -60,6 +62,55 @@
         "pages/cat",
         "pages/dog"
       ]
+    }, {
+      "root": "packageB",
+      "name": "pack2",
+      "pages": [
+        "pages/apple",
+        "pages/banana"
+      ]
+    }
+  ]
+}
+
+
+root: String               分包根目录
+name: String               分包别名，在分包预下载时可以使用
+pages: StringArray         分包页面路径，相对于分包目录
+independent: Boolean       分包是否是独立分包
+```
+
+一些注意点:
+
+-   tabBar 必须在主包
+-   分包 A 无法引用分包 B 的 js、template、静态文件，但可以引用主包的
+
+#### 1-1-3、独立分包
+
+-   从独立分包中页面进入小程序时，不需要下载主包。因此独立分包不能依赖于依赖主包和其他分包中的内容, 包括 js 文件、template、wxss、自定义组件、插件等。并且，独立分包的 getApp 也不一定可以获得 App 对象
+- 一般使用场景: 广告页、活动页、支付页等
+-   在 app.json 的 subpackages 字段中对应的分包配置项中定义 independent 字段声明对应分包为独立分包
+
+```
+{
+  "pages": [
+    "pages/index",
+    "pages/logs"
+  ],
+  "subpackages": [
+    {
+      "root": "moduleA",
+      "pages": [
+        "pages/rabbit",
+        "pages/squirrel"
+      ]
+    }, {
+      "root": "moduleB",
+      "pages": [
+        "pages/pear",
+        "pages/pineapple"
+      ],
+      "independent": true  // 用于独立分包
     }
   ]
 }
