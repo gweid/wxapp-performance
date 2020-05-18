@@ -119,7 +119,8 @@ independent: Boolean       分包是否是独立分包
 #### 1-1-4、分包预下载
 
 这个就是进入小程序某个页面时，让框架自动下载可能需要的分包，提高进入后续分包页面时的启动速度，而不是等到需要进去分包页面的时候再下载
-![分包](/imgs/img2.png)
+
+![分包预下载](/imgs/img2.png)
 
 -   packages: StringArray 进入页面后预下载分包的 root 或 name。\_\_APP\_\_ 表示主包
 -   network: String 在指定网络下预下载，可选值为 all: 不限网络 wifi: 仅 wifi 下预下载
@@ -208,4 +209,73 @@ data() {
 
 在小程序启动流程中，会顺序执行 app.onLaunch, app.onShow, page.onLoad, page.onShow, page.onReady，所以，尽量避免在这些生命周期中使用 Sync 结尾的同步 API
 
+#### 1-2-5、避免首页白屏
+
+使用骨架屏或者加载交互功能，避免用户觉得小程序无响应
+
 ## 2、渲染性能优化
+
+小程序的视图层目前使用 WebView 作为渲染载体，而逻辑层是由独立的 JavascriptCore 作为运行环境。在架构上，WebView 和 JavascriptCore 都是独立的模块，并不具备数据直接共享的通道。当前，视图层和逻辑层的数据传输，实际上通过两边提供的 evaluateJavascript  来实现。即用户传输的数据，需要将其转换为字符串形式传递，同时把转换后的数据内容拼接成一份 JS 脚本，再通过执行 JS 脚本的形式传递到两边独立环境
+
+![小程序渲染机制](/imgs/img3.png)
+
+### 2-1、避免频繁的去 setData
+
+原因: 视图层目前使用 WebView 作为渲染载体, 逻辑层是由独立的 JavascriptCore 作为运行环境, 每次使用 setData 都需要两个进程之间通讯
+
+频繁 setData 会造成
+
+-   Android 下用户在滑动时会感觉到卡顿，操作反馈延迟严重，因为 JS 线程一直在编译执行渲染，未能及时将用户操作事件传递到逻辑层，逻辑层亦无法及时将操作处理结果及时传递到视图层；
+-   渲染有出现延时，由于 WebView 的 JS 线程一直处于忙碌状态，逻辑层到页面层的通信耗时上升，视图层收到的数据消息时距离发出时间已经过去了几百毫秒，渲染的结果并不实时；
+
+总结：把 setData 操作合并
+
+### 2-2、避免每次 setData 都传递大量新数据
+
+这个主要存在于长列表的渲染
+
+-   每次 setData 都是进程间的通讯，通讯开销与 setData 的数据量相关
+
+解决：
+
+```
+// 1.通过一个二维数组来存储数据
+let feedList = [[array]];
+
+// 2.维护一个页面变量值，加载完一次数据page++
+let page = 1
+
+// 3.页面每次滚动到底部，通过数据路径更新数据
+onReachBottom:()=>{
+    fetchNewData().then((newVal)=>{
+        this.setData({
+            ['feedList[' + (page - 1) + ']']: newVal,
+        })
+    }
+}
+// 4.最终我们的数据是[[array1],[array2]]这样的格式，然后通过wx:for遍历渲染数据
+
+// wxml文件里做一个双重循环，达到增量渲染的效果，实测数万级列表也不会卡顿。
+<block wx:for="{{List}}" wx:for-item="list-item">
+    <block wx:for="{{list-item}}" wx:for-item="list">
+      <view class="tab-content">
+       {{list.content}}
+      </view>
+    </block>
+</block>
+```
+
+### 2-3、避免后台状态进行 setData
+
+当页面进入后台态（用户不可见），不应该继续去进行 setData，后台态页面的渲染用户是无法感受的，另外后台态页面去 setData 也会抢占前台页面的执行
+
+![避免后台setData](/imgs/img4.png)
+
+### 2-4、事件使用不当
+
+-   避免不当使用 onPageScroll, 使用节流防抖限制频繁监听 onPageScroll
+-   避免在 onPageScroll 频繁调用 setData、执行复杂逻辑
+
+### 2-5、使用自定义组件
+
+有些场景需要频繁更新，自定义组建的更新只在组件内部进行，不受页面其他部分内容影响。例如：9 块 9 活动倒计时
