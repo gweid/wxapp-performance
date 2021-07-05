@@ -202,6 +202,12 @@ independent: Boolean       分包是否是独立分包
 
 
 
+#### 1-1-6、小程序瘦身工具
+
+使用 [小程序瘦身工具](https://github.com/wechat-miniprogram/miniprogram-slim)，通过剔除无用文件、压缩图片、复用代码等方式减少小程序代码包体积
+
+
+
 ### 1-2、首屏渲染性能优化
 
 
